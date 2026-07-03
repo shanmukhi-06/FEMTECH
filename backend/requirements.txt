@@ -1,0 +1,25 @@
+# The Case File — Python dependencies
+# Install: pip install -r requirements.txt
+
+# ── Cognee v1.0 (remember/recall/improve/forget) ──────────────
+cognee==1.2.2
+
+# ── LangGraph + LangChain ─────────────────────────────────────
+langgraph==1.2.7
+langchain-core>=1.4.0
+langchain-groq>=0.2.0
+
+# ── FastAPI + server ──────────────────────────────────────────
+fastapi>=0.116.2
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+
+# ── Data validation ───────────────────────────────────────────
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+
+# ── Environment ───────────────────────────────────────────────
+python-dotenv>=1.0.0
+
+# ── Typing ────────────────────────────────────────────────────
+typing-extensions>=4.12.0

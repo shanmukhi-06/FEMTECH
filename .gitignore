@@ -1,0 +1,29 @@
+# Environment files — NEVER commit real keys
+backend/.env
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Cognee local storage
+.cognee_system/
+cognee_data/
+*.db
+*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp

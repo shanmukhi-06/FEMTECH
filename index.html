@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Case File — AI Investigator Command Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════
+       TOP COMMAND BAR
+  ═══════════════════════════════════════════════════════ -->
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <div class="logo-lockup">
+        <div class="logo-hex">
+          <svg width="32" height="32" viewBox="0 0 32 32">
+            <polygon points="16,2 28,9 28,23 16,30 4,23 4,9" fill="none" stroke="#1E3A5F" stroke-width="1.5"/>
+            <polygon points="16,7 24,11.5 24,20.5 16,25 8,20.5 8,11.5" fill="#1E3A5F" opacity="0.12"/>
+            <text x="16" y="21" text-anchor="middle" font-size="11" font-weight="700" fill="#1E3A5F" font-family="Inter">CF</text>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span class="logo-title">THE CASE FILE</span>
+          <span class="logo-sub">AI Investigator Command Center · v2.4.1</span>
+        </div>
+      </div>
+
+      <div class="divider-v"></div>
+
+      <div class="case-pill">
+        <span class="status-dot green"></span>
+        <span>CASE #2024-ALPHA-7</span>
+        <span class="pill-sep">·</span>
+        <span class="pill-tag">ACTIVE INTERROGATION</span>
+      </div>
+
+      <div class="node-chain">
+        <div class="chain-node active" title="Detective Agent">
+          <span class="chain-dot"></span>node_01
+        </div>
+        <span class="chain-arrow">→</span>
+        <div class="chain-node active" title="Analyst Agent">
+          <span class="chain-dot"></span>node_02
+        </div>
+        <span class="chain-arrow">→</span>
+        <div class="chain-node" title="Chief of Police">
+          <span class="chain-dot idle"></span>node_03
+        </div>
+        <span class="chain-arrow">→</span>
+        <div class="chain-node memory" title="Cognee Memory">
+          <span class="chain-dot pulse-dot"></span>cognee
+        </div>
+      </div>
+    </div>
+
+    <div class="top-bar-right">
+      <div class="stat-block">
+        <span class="stat-num" id="sessionCount">4</span>
+        
+        <span class="stat-lbl">Sessions</span>
+      </div>
+      <div class="stat-block">
+        <span class="stat-num" id="statementCount">17</span>
+        <span class="stat-lbl">Statements</span>
+      </div>
+      <div class="stat-block stat-alert">
+        <span class="stat-num" id="contradictionCount">3</span>
+        <span class="stat-lbl">Contradictions</span>
+      </div>
+      <div class="stat-block">
+        <span class="stat-num" id="graphNodes">42</span>
+        <span class="stat-lbl">Graph Nodes</span>
+      </div>
+      <div class="divider-v"></div>
+      <div class="memory-indicator">
+        <div class="mem-ring">
+          <svg width="36" height="36" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="14" fill="none" stroke="#E2E8F0" stroke-width="3"/>
+            <circle cx="18" cy="18" r="14" fill="none" stroke="#D97706" stroke-width="3"
+              stroke-dasharray="62 88" stroke-dashoffset="22" stroke-linecap="round"
+              class="mem-arc" transform="rotate(-90 18 18)"/>
+          </svg>
+          <span class="mem-pct">71%</span>
+        </div>
+        <div class="mem-info">
+          <span class="mem-label">cognee.memory</span>
+          <span class="mem-status">ONLINE</span>
+        </div>
+      </div>
+      <button class="top-btn" onclick="showGraphModal()">◈ Graph View</button>
+      <button class="top-btn top-btn-danger" onclick="toggleLockdown()">⬡ Lockdown</button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MAIN DASHBOARD GRID
+  ═══════════════════════════════════════════════════════ -->
+  <main class="dashboard-grid">
+
+    <!-- ╔══════════════════════════════╗
+         ║  LEFT — INTERROGATION ROOM   ║
+         ╚══════════════════════════════╝ -->
+    <section class="panel panel-detective" id="panel-detective">
+
+      <div class="panel-header">
+        <div class="panel-hd-left">
+          <div class="panel-icon-badge detective-badge">🕵</div>
+          <div>
+            <div class="panel-title">Interrogation Room</div>
+            <div class="panel-subtitle">Detective Agent · <code>node_01</code> · cognee.remember()</div>
+          </div>
+        </div>
+        <div class="panel-hd-right">
+          <div class="traffic-lights">
+            <span class="tl red"></span>
+            <span class="tl amber"></span>
+            <span class="tl green"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Tabs -->
+      <div class="session-tabs" id="sessionTabs">
+        <button class="stab active" data-session="1" onclick="switchSession(this,1)">
+          <span class="stab-dot green"></span>Session 1
+        </button>
+        <button class="stab" data-session="2" onclick="switchSession(this,2)">
+          <span class="stab-dot amber"></span>Session 2
+        </button>
+        <button class="stab" data-session="3" onclick="switchSession(this,3)">
+          <span class="stab-dot amber"></span>Session 3
+        </button>
+        <button class="stab" data-session="4" onclick="switchSession(this,4)">
+          <span class="stab-dot grey"></span>Session 4
+        </button>
+        <button class="stab stab-add" onclick="addSession()">＋</button>
+      </div>
+
+      <!-- Chat History -->
+      <div class="chat-history" id="chatHistory">
+
+        <div class="chat-date-divider"><span>SESSION 1 · March 21, 2024 · 09:14 UTC</span></div>
+
+        <div class="msg-row system-row">
+          <div class="msg-bubble system-bubble">
+            <span class="system-icon">⬡</span>
+            Case #2024-ALPHA-7 initialized. Cognee graph namespace active. Memory isolation: <strong>ON</strong>. Dataset: <code>case-2024-alpha-7</code>
+          </div>
+        </div>
+
+        <div class="msg-row detective-row">
+          <div class="msg-meta">
+            <span class="msg-avatar detective-avatar">D</span>
+            <span class="msg-author">Detective</span>
+            <span class="msg-time">09:15</span>
+            <span class="msg-node">node_01</span>
+          </div>
+          <div class="msg-bubble detective-bubble">
+            Mr. Harlow, can you confirm your whereabouts on the evening of March 14th? We have several items we need to walk through with you today.
+          </div>
+        </div>
+
+        <div class="msg-row subject-row">
+          <div class="msg-meta">
+            <span class="msg-avatar subject-avatar">H</span>
+            <span class="msg-author">Harlow</span>
+            <span class="msg-time">09:16</span>
+            <span class="stmt-badge">stmt_004</span>
+          </div>
+          <div class="msg-bubble subject-bubble">
+            I was at home all evening. Never left the house. My wife can confirm that.
+          </div>
+        </div>
+
+        <div class="msg-row detective-row">
+          <div class="msg-meta">
+            <span class="msg-avatar detective-avatar">D</span>
+            <span class="msg-author">Detective</span>
+            <span class="msg-time">09:18</span>
+          </div>
+          <div class="msg-bubble detective-bubble">
+            And the dinner receipt from Café Noireau timestamped 8:47 PM that same evening — how do you explain that? We pulled it from the transaction records.
+          </div>
+        </div>
+
+        <div class="msg-row subject-row flagged-row">
+          <div class="msg-meta">
+            <span class="msg-avatar subject-avatar">H</span>
+            <span class="msg-author">Harlow</span>
+            <span class="msg-time">09:19</span>
+            <span class="stmt-badge">stmt_017</span>
+            <span class="contradiction-badge">⚠ CONTRADICTION</span>
+          </div>
+          <div class="msg-bubble subject-bubble contradiction-bubble">
+            Oh — I forgot. I stepped out briefly. Just for takeout. I wasn't gone more than 20 minutes.
+          </div>
+        </div>
+
+        <div class="msg-row analyst-row">
+          <div class="analyst-bubble">
+            <span class="analyst-chip">Analyst Node · out-of-band</span>
+            <span class="analyst-text">cognee.recall() → Cross-referencing S1:stmt_004 "never left the house" vs S2:stmt_017 "stepped out briefly." Graph edge detected. Credibility delta: <strong>−18%</strong></span>
+          </div>
+        </div>
+
+        <div class="chat-date-divider"><span>SESSION 2 · March 28, 2024 · 14:30 UTC</span></div>
+
+        <div class="msg-row detective-row">
+          <div class="msg-meta">
+            <span class="msg-avatar detective-avatar">D</span>
+            <span class="msg-author">Detective</span>
+            <span class="msg-time">14:30</span>
+          </div>
+          <div class="msg-bubble detective-bubble">
+            In our last session you mentioned you stepped out for 20 minutes. Who else was present at that dinner?
+          </div>
+        </div>
+
+        <div class="msg-row subject-row">
+          <div class="msg-meta">
+            <span class="msg-avatar subject-avatar">H</span>
+            <span class="msg-author">Harlow</span>
+            <span class="msg-time">14:31</span>
+            <span class="stmt-badge">stmt_021</span>
+          </div>
+          <div class="msg-bubble subject-bubble">
+            I went alone. Just needed some air. Nobody was with me.
+          </div>
+        </div>
+
+        <div class="msg-row analyst-row">
+          <div class="analyst-bubble">
+            <span class="analyst-chip">Analyst Node · out-of-band</span>
+            <span class="analyst-text">Café Noireau seating record: table reserved for 2. Companion claim unverified. Node stmt_021 → ∅. Pending graph traversal.</span>
+          </div>
+        </div>
+
+        <div class="msg-row detective-row">
+          <div class="msg-meta">
+            <span class="msg-avatar detective-avatar">D</span>
+            <span class="msg-author">Detective</span>
+            <span class="msg-time">14:34</span>
+          </div>
+          <div class="msg-bubble detective-bubble">
+            And what about the business trip to Chicago on March 12th? The flight was booked through your corporate account.
+          </div>
+        </div>
+
+        <div class="msg-row subject-row flagged-row">
+          <div class="msg-meta">
+            <span class="msg-avatar subject-avatar">H</span>
+            <span class="msg-author">Harlow</span>
+            <span class="msg-time">14:35</span>
+            <span class="stmt-badge">stmt_019</span>
+            <span class="contradiction-badge">⚠ CONTRADICTION</span>
+          </div>
+          <div class="msg-bubble subject-bubble contradiction-bubble">
+            I told you I don't travel for work. I handle everything remotely. There must be some mistake with those records.
+          </div>
+        </div>
+
+        <div class="msg-row analyst-row">
+          <div class="analyst-bubble">
+            <span class="analyst-chip">Analyst Node · out-of-band</span>
+            <span class="analyst-text">cognee.recall() → S3:stmt_013 "no business travel" ⇔ S2:stmt_019 "must be a mistake." Flight log SFO→ORD confirmed. Graph edge weight: 0.88. Credibility delta: <strong>−12%</strong></span>
+          </div>
+        </div>
+
+      </div><!-- /chat-history -->
+
+      <!-- Typing Indicator -->
+      <div class="typing-indicator" id="typingIndicator" style="display:none">
+        <span class="msg-avatar detective-avatar" style="width:22px;height:22px;font-size:10px">D</span>
+        <div class="typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <span class="typing-label">Detective is processing...</span>
+      </div>
+
+      <!-- Stream Status Bar -->
+      <div class="stream-bar" id="streamBar">
+        <span class="stream-dot" id="streamDot"></span>
+        <span class="stream-text" id="streamText">Idle · cognee.memory synced · Graph namespace stable</span>
+        <div class="stream-right">
+          <span class="stream-ops" id="streamOps">
+            <span class="op-chip op-remember">remember()</span>
+            <span class="op-chip op-recall">recall()</span>
+            <span class="op-chip op-improve">improve()</span>
+          </span>
+          <span class="stream-bytes" id="streamBytes">synced</span>
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="chat-input-wrapper">
+        <div class="chat-input-area">
+          <textarea class="chat-input" id="chatInput"
+            placeholder="Enter subject statement or detective question..."
+            rows="2" maxlength="500"></textarea>
+          <div class="input-actions">
+            <button class="input-action-btn" onclick="injectPrompt('detective')" title="Detective mode">🕵</button>
+            <button class="input-action-btn" onclick="injectPrompt('subject')" title="Subject mode">👤</button>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+              Send <span class="send-kbd">↵</span>
+            </button>
+          </div>
+        </div>
+        <div class="input-footer">
+          <span class="input-meta">cognee.remember() · <code>dataset: case-2024-alpha-7</code> · GRAPH_COMPLETION_COT</span>
+          <span class="input-counter" id="inputCounter">0 / 500</span>
+        </div>
+      </div>
+
+    </section><!-- /panel-detective -->
+
+    <!-- ╔══════════════════════════════╗
+         ║  MIDDLE — ANALYST NODE       ║
+         ╚══════════════════════════════╝ -->
+    <section class="panel panel-analyst" id="panel-analyst">
+
+      <div class="panel-header">
+        <div class="panel-hd-left">
+          <div class="panel-icon-badge analyst-badge">◈</div>
+          <div>
+            <div class="panel-title">Linguistic & Fact Verification</div>
+            <div class="panel-subtitle">Analyst Agent · <code>node_02</code> · out-of-band · CoT active</div>
+          </div>
+        </div>
+        <div class="panel-hd-right">
+          <span class="cot-pill">
+            <span class="status-dot pulse-dot-purple"></span>
+            Chain-of-Thought
+          </span>
+        </div>
+      </div>
+
+      <!-- ── CONTRADICTION ALERT BOX ── -->
+      <div class="contradiction-alert active" id="contradictionAlert">
+        <div class="ca-header">
+          <div class="ca-title-row">
+            <span class="ca-icon">◼</span>
+            <span class="ca-title">CONTRADICTION ALERT</span>
+            <span class="ca-count" id="caCount">3 flagged</span>
+            <span class="ca-session" id="caSession">Session 1 → Session 2</span>
+            <button class="ca-dismiss" onclick="dismissAlert()" title="Dismiss">✕</button>
+          </div>
+        </div>
+        <div class="ca-body">
+          <div class="ca-conflict-grid">
+            <div class="ca-statement ca-old">
+              <div class="ca-stmt-header">
+                <span class="ca-stmt-label" id="caLabelA">Session 1 · stmt_004 · 09:16</span>
+                <span class="ca-stmt-tag prior">PRIOR</span>
+              </div>
+              <p id="caTextA">"I was at home all evening. <strong>Never left the house.</strong> My wife can confirm that."</p>
+            </div>
+            <div class="ca-vs">
+              <div class="ca-vs-line"></div>
+              <span>vs</span>
+              <div class="ca-vs-line"></div>
+            </div>
+            <div class="ca-statement ca-new">
+              <div class="ca-stmt-header">
+                <span class="ca-stmt-label" id="caLabelB">Session 2 · stmt_017 · 09:19</span>
+                <span class="ca-stmt-tag current">CURRENT</span>
+              </div>
+              <p id="caTextB">"Oh — I forgot. I <strong>stepped out briefly</strong>. Just for takeout. I wasn't gone more than 20 minutes."</p>
+            </div>
+          </div>
+          <div class="ca-meta-row">
+            <div class="ca-meta-chip ca-chip-red">
+              <span class="ca-chip-label">Δ credibility</span>
+              <strong id="caCredDelta">−18%</strong>
+            </div>
+            <div class="ca-meta-chip">
+              <span class="ca-chip-label">recall() match</span>
+              <strong id="caRecallMatch">94.2%</strong>
+            </div>
+            <div class="ca-meta-chip">
+              <span class="ca-chip-label">graph edge</span>
+              <strong id="caEdge">stmt_017 ⇔ stmt_004</strong>
+            </div>
+            <div class="ca-meta-chip">
+              <span class="ca-chip-label">edge weight</span>
+              <strong>0.94</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CREDIBILITY INDEX ── -->
+      <div class="cred-section">
+        <div class="cred-section-header">
+          <span class="section-title">Suspect Credibility Index</span>
+          <span class="section-meta">cognee.improve() · live updates</span>
+        </div>
+
+        <div class="cred-list">
+
+          <div class="cred-row" id="credHarlow">
+            <div class="cred-row-top">
+              <div class="cred-suspect">
+                <span class="suspect-initials suspect-red">MH</span>
+                <div>
+                  <span class="suspect-name">Marcus Harlow</span>
+                  <span class="suspect-role">Primary Suspect</span>
+                </div>
+              </div>
+              <div class="cred-right">
+                <span class="cred-pct critical" id="harlowScore">42%</span>
+                <span class="cred-trend down">▼</span>
+              </div>
+            </div>
+            <div class="cred-track">
+              <div class="cred-fill cred-fill-red" id="harlowBar" style="width:42%">
+                <div class="cred-fill-glow"></div>
+              </div>
+            </div>
+            <div class="cred-events">
+              <span class="cred-event-chip red">▼ 18% · S2.04 location</span>
+              <span class="cred-event-chip red">▼ 12% · S3.01 travel</span>
+              <span class="cred-event-chip red">▼ 8% · S1.11 timeline</span>
+            </div>
+          </div>
+
+          <div class="cred-row" id="credVoss">
+            <div class="cred-row-top">
+              <div class="cred-suspect">
+                <span class="suspect-initials suspect-amber">RV</span>
+                <div>
+                  <span class="suspect-name">Renata Voss</span>
+                  <span class="suspect-role">Associate · Nexar Corp</span>
+                </div>
+              </div>
+              <div class="cred-right">
+                <span class="cred-pct warning" id="vossScore">67%</span>
+                <span class="cred-trend down">▼</span>
+              </div>
+            </div>
+            <div class="cred-track">
+              <div class="cred-fill cred-fill-amber" id="vossBar" style="width:67%">
+                <div class="cred-fill-glow"></div>
+              </div>
+            </div>
+            <div class="cred-events">
+              <span class="cred-event-chip amber">▼ 9% · S1.11 alibi inconsistency</span>
+            </div>
+          </div>
+
+          <div class="cred-row cred-cleared" id="credChen">
+            <div class="cred-row-top">
+              <div class="cred-suspect">
+                <span class="suspect-initials suspect-green">DC</span>
+                <div>
+                  <span class="suspect-name">D. Chen</span>
+                  <span class="suspect-role">Cleared · cognee.forget()</span>
+                </div>
+              </div>
+              <div class="cred-right">
+                <span class="cred-cleared-badge">CLEARED</span>
+              </div>
+            </div>
+            <div class="cred-track">
+              <div class="cred-fill cred-fill-green" style="width:91%;opacity:0.4"></div>
+            </div>
+            <div class="cred-events">
+              <span class="cred-event-chip green">Pruned from active graph · node deleted</span>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /cred-section -->
+
+      <!-- ── LIVE VERIFICATION FEED ── -->
+      <div class="feed-section">
+        <div class="feed-header">
+          <span class="section-title">Live Verification Feed</span>
+          <div class="feed-controls">
+            <span class="feed-filter active-filter" onclick="filterFeed('all',this)">All</span>
+            <span class="feed-filter" onclick="filterFeed('contradiction',this)">Contradictions</span>
+            <span class="feed-filter" onclick="filterFeed('verified',this)">Verified</span>
+            <span class="live-dot-badge">
+              <span class="status-dot pulse-dot-red"></span>LIVE
+            </span>
+          </div>
+        </div>
+        <div class="fact-feed" id="factFeed">
+
+          <div class="fact-item fact-contradiction" data-type="contradiction">
+            <div class="fact-left">
+              <span class="fact-icon-badge fi-red">⚡</span>
+              <div class="fact-connector"></div>
+            </div>
+            <div class="fact-body">
+              <div class="fact-type-row">
+                <span class="fact-tag tag-contradiction">CONTRADICTION</span>
+                <span class="fact-ts">09:19</span>
+              </div>
+              <p class="fact-text">Location delta — "home all evening" vs café receipt 20:47</p>
+              <div class="fact-graph-ref">
+                <span class="gref">stmt_017</span><span class="garrow">⇔</span><span class="gref">stmt_004</span>
+                <span class="gwt">edge: 0.94</span><span class="gdelta red-delta">Δ −18%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="fact-item fact-verified" data-type="verified">
+            <div class="fact-left">
+              <span class="fact-icon-badge fi-green">✓</span>
+              <div class="fact-connector"></div>
+            </div>
+            <div class="fact-body">
+              <div class="fact-type-row">
+                <span class="fact-tag tag-verified">VERIFIED</span>
+                <span class="fact-ts">09:21</span>
+              </div>
+              <p class="fact-text">Employment at Nexar Corp confirmed via badge record cross-ref</p>
+              <div class="fact-graph-ref">
+                <span class="gref">stmt_008</span><span class="garrow">←</span><span class="gref">stmt_002</span>
+                <span class="gwt">confidence: 0.91</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="fact-item fact-pending" data-type="pending">
+            <div class="fact-left">
+              <span class="fact-icon-badge fi-grey">◌</span>
+              <div class="fact-connector"></div>
+            </div>
+            <div class="fact-body">
+              <div class="fact-type-row">
+                <span class="fact-tag tag-pending">PENDING</span>
+                <span class="fact-ts">09:23</span>
+              </div>
+              <p class="fact-text">Dinner companion claim — no corroborating node in graph</p>
+              <div class="fact-graph-ref">
+                <span class="gref">stmt_021</span><span class="garrow">→</span><span class="gref">∅</span>
+                <span class="gwt">awaiting recall()</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="fact-item fact-contradiction" data-type="contradiction">
+            <div class="fact-left">
+              <span class="fact-icon-badge fi-red">⚡</span>
+              <div class="fact-connector"></div>
+            </div>
+            <div class="fact-body">
+              <div class="fact-type-row">
+                <span class="fact-tag tag-contradiction">CONTRADICTION</span>
+                <span class="fact-ts">14:35</span>
+              </div>
+              <p class="fact-text">"No business travel" vs confirmed SFO → ORD flight, Mar 12</p>
+              <div class="fact-graph-ref">
+                <span class="gref">stmt_013</span><span class="garrow">⇔</span><span class="gref">stmt_019</span>
+                <span class="gwt">edge: 0.88</span><span class="gdelta red-delta">Δ −12%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="fact-item fact-verified" data-type="verified">
+            <div class="fact-left">
+              <span class="fact-icon-badge fi-green">✓</span>
+            </div>
+            <div class="fact-body">
+              <div class="fact-type-row">
+                <span class="fact-tag tag-verified">VERIFIED</span>
+                <span class="fact-ts">14:40</span>
+              </div>
+              <p class="fact-text">Nexar Corp meeting with Voss, Mar 10 — badge swipe confirmed</p>
+              <div class="fact-graph-ref">
+                <span class="gref">stmt_008</span><span class="garrow">↔</span><span class="gref">voss_001</span>
+                <span class="gwt">confidence: 0.89</span>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /fact-feed -->
+      </div><!-- /feed-section -->
+
+    </section><!-- /panel-analyst -->
+
+    <!-- ╔══════════════════════════════╗
+         ║  RIGHT — CHIEF'S BRIEFING    ║
+         ╚══════════════════════════════╝ -->
+    <section class="panel panel-chief" id="panel-chief">
+
+      <div class="panel-header">
+        <div class="panel-hd-left">
+          <div class="panel-icon-badge chief-badge">⚖</div>
+          <div>
+            <div class="panel-title">Chief's Official Briefing</div>
+            <div class="panel-subtitle">Case Report · <code>node_03</code> · ChiefOfPolice · cognee.recall()</div>
+          </div>
+        </div>
+        <div class="panel-hd-right">
+          <button class="report-btn" onclick="refreshReport()">↻ Regenerate</button>
+          <button class="report-btn report-btn-primary" onclick="exportReport()">↓ Export PDF</button>
+        </div>
+      </div>
+
+      <!-- Report Document -->
+      <div class="report-doc" id="reportDoc">
+
+        <!-- Masthead -->
+        <div class="report-masthead">
+          <div class="masthead-left">
+            <div class="masthead-badge-row">
+              <span class="confidential-badge">⬛ CONFIDENTIAL</span>
+              <span class="report-id-badge">CASE #2024-ALPHA-7</span>
+            </div>
+            <h1 class="report-h1">OFFICIAL INVESTIGATIVE CASE REPORT</h1>
+            <p class="report-lead">Compiled by ChiefOfPolice node via <code>cognee.recall()</code> + LangGraph multi-agent pipeline</p>
+          </div>
+          <div class="masthead-right">
+            <div class="report-meta-item">
+              <span class="rmi-label">Generated</span>
+              <span class="rmi-val">2026-07-01 · 09:26 UTC</span>
+            </div>
+            <div class="report-meta-item">
+              <span class="rmi-label">Sessions</span>
+              <span class="rmi-val">4 completed</span>
+            </div>
+            <div class="report-meta-item">
+              <span class="rmi-label">Graph Nodes</span>
+              <span class="rmi-val">42 active · 1 pruned</span>
+            </div>
+            <div class="report-meta-item">
+              <span class="rmi-label">Status</span>
+              <span class="rmi-val rmi-open">● OPEN</span>
+            </div>
+          </div>
+          <div class="masthead-rule"></div>
+        </div>
+
+        <!-- ── SECTION: Event Timeline ── -->
+        <div class="report-section" id="sec-timeline">
+          <button class="sec-toggle" onclick="toggleSec('timeline')">
+            <span class="sec-chevron" id="chev-timeline">▾</span>
+            <span class="sec-icon">📅</span>
+            <span class="sec-title">Event Timeline</span>
+            <span class="sec-count">7 events</span>
+            <span class="sec-updated">Updated: 09:26</span>
+          </button>
+          <div class="sec-body" id="body-timeline">
+            <div class="timeline">
+
+              <div class="tl-entry tl-critical">
+                <div class="tl-left">
+                  <div class="tl-dot dot-red"></div>
+                  <div class="tl-stem"></div>
+                </div>
+                <div class="tl-content">
+                  <div class="tl-header">
+                    <span class="tl-date">Mar 14, 2024 · 20:47</span>
+                    <span class="tl-tag tl-tag-red">CONTRADICTION</span>
+                  </div>
+                  <p class="tl-desc">Receipt confirmed at Café Noireau — directly contradicts "home all evening" claim from Session 1 (stmt_004).</p>
+                  <div class="tl-refs">
+                    <span class="tl-ref">ref: stmt_017</span>
+                    <span class="tl-ref">⇔ stmt_004</span>
+                    <span class="tl-ref">Δ −18%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tl-entry tl-warning">
+                <div class="tl-left">
+                  <div class="tl-dot dot-amber"></div>
+                  <div class="tl-stem"></div>
+                </div>
+                <div class="tl-content">
+                  <div class="tl-header">
+                    <span class="tl-date">Mar 12, 2024 · 06:15</span>
+                    <span class="tl-tag tl-tag-amber">FLAG</span>
+                  </div>
+                  <p class="tl-desc">Flight record SFO → ORD booked via corporate account. Subject denied any business travel in stmt_013.</p>
+                  <div class="tl-refs">
+                    <span class="tl-ref">ref: stmt_013</span>
+                    <span class="tl-ref">⇔ stmt_019</span>
+                    <span class="tl-ref">edge: 0.88</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tl-entry">
+                <div class="tl-left">
+                  <div class="tl-dot dot-slate"></div>
+                  <div class="tl-stem"></div>
+                </div>
+                <div class="tl-content">
+                  <div class="tl-header">
+                    <span class="tl-date">Mar 10, 2024 · 14:30</span>
+                    <span class="tl-tag tl-tag-blue">VERIFIED</span>
+                  </div>
+                  <p class="tl-desc">Meeting with R. Voss at Nexar Corp HQ confirmed by badge swipe system and CCTV cross-reference.</p>
+                  <div class="tl-refs">
+                    <span class="tl-ref">ref: stmt_008</span>
+                    <span class="tl-ref">confidence: 0.91</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tl-entry">
+                <div class="tl-left">
+                  <div class="tl-dot dot-slate"></div>
+                  <div class="tl-stem"></div>
+                </div>
+                <div class="tl-content">
+                  <div class="tl-header">
+                    <span class="tl-date">Mar 8, 2024 · 11:00</span>
+                    <span class="tl-tag tl-tag-amber">FLAG</span>
+                  </div>
+                  <p class="tl-desc">Unauthorized access to restricted server log partition — IT security anomaly flagged by Nexar Corp SIEM.</p>
+                  <div class="tl-refs">
+                    <span class="tl-ref">ref: stmt_005</span>
+                    <span class="tl-ref">source: IT_LOG_2024_0308</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tl-entry">
+                <div class="tl-left">
+                  <div class="tl-dot dot-slate"></div>
+                  <div class="tl-stem"></div>
+                </div>
+                <div class="tl-content">
+                  <div class="tl-header">
+                    <span class="tl-date">Mar 5, 2024 · 09:00</span>
+                    <span class="tl-tag tl-tag-slate">CLEARED</span>
+                  </div>
+                  <p class="tl-desc">D. Chen alibi corroborated by three independent witnesses. Removed from active suspect pool. Node pruned via cognee.forget().</p>
+                  <div class="tl-refs">
+                    <span class="tl-ref">ref: stmt_003</span>
+                    <span class="tl-ref">cognee.forget() · node deleted</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tl-entry">
+                <div class="tl-left">
+                  <div class="tl-dot dot-slate"></div>
+                </div>
+                <div class="tl-content">
+                  <div class="tl-header">
+                    <span class="tl-date">Mar 1, 2024 · 08:00</span>
+                    <span class="tl-tag tl-tag-blue">ORIGIN</span>
+                  </div>
+                  <p class="tl-desc">Case #2024-ALPHA-7 opened. Initial complaint filed. Harlow identified as primary person of interest.</p>
+                  <div class="tl-refs">
+                    <span class="tl-ref">case origin</span>
+                    <span class="tl-ref">ref: stmt_001</span>
+                  </div>
+                </div>
+              </div>
+
+            </div><!-- /timeline -->
+          </div><!-- /sec-body -->
+        </div><!-- /sec-timeline -->
+
+        <!-- ── SECTION: Active Suspects ── -->
+        <div class="report-section" id="sec-suspects">
+          <button class="sec-toggle" onclick="toggleSec('suspects')">
+            <span class="sec-chevron" id="chev-suspects">▾</span>
+            <span class="sec-icon">👥</span>
+            <span class="sec-title">Active Suspects</span>
+            <span class="sec-count">2 active · 1 cleared</span>
+            <span class="sec-updated">Updated: 09:26</span>
+          </button>
+          <div class="sec-body" id="body-suspects">
+            <table class="suspects-table" id="suspectsTable">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Role</th>
+                  <th>Credibility</th>
+                  <th>Contradictions</th>
+                  <th>Last Updated</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="str-critical">
+                  <td>
+                    <div class="st-name-cell">
+                      <span class="st-avatar st-red">MH</span>
+                      <div>
+                        <strong>Marcus Harlow</strong>
+                        <span class="st-detail">DOB: 1981-04-22 · Nexar Corp Sr. Analyst</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="role-badge role-primary">Primary</span></td>
+                  <td><span class="ts-score ts-red" id="tableHarlowScore">42%</span></td>
+                  <td><span class="ts-count">3</span></td>
+                  <td><span class="ts-time">09:26 UTC</span></td>
+                  <td><span class="status-pill pill-watch">⬛ WATCH</span></td>
+                </tr>
+                <tr class="str-warning">
+                  <td>
+                    <div class="st-name-cell">
+                      <span class="st-avatar st-amber">RV</span>
+                      <div>
+                        <strong>Renata Voss</strong>
+                        <span class="st-detail">DOB: 1985-09-11 · Nexar Corp Director</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="role-badge role-associate">Associate</span></td>
+                  <td><span class="ts-score ts-amber" id="tableVossScore">67%</span></td>
+                  <td><span class="ts-count">1</span></td>
+                  <td><span class="ts-time">14:40 UTC</span></td>
+                  <td><span class="status-pill pill-monitor">◈ MONITOR</span></td>
+                </tr>
+                <tr class="str-cleared">
+                  <td>
+                    <div class="st-name-cell">
+                      <span class="st-avatar st-green">DC</span>
+                      <div>
+                        <strong>D. Chen</strong>
+                        <span class="st-detail">DOB: 1990-02-14 · Nexar Corp Intern</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="role-badge role-cleared">Cleared</span></td>
+                  <td><span class="ts-score ts-green">91%</span></td>
+                  <td><span class="ts-count">0</span></td>
+                  <td><span class="ts-time">Mar 5</span></td>
+                  <td><span class="status-pill pill-cleared">✓ CLEARED</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ── SECTION: Direct Graph Citations ── -->
+        <div class="report-section" id="sec-citations">
+          <button class="sec-toggle" onclick="toggleSec('citations')">
+            <span class="sec-chevron" id="chev-citations">▾</span>
+            <span class="sec-icon">🔗</span>
+            <span class="sec-title">Direct Graph Citations</span>
+            <span class="sec-count">5 nodes · 4 edges</span>
+            <span class="sec-updated">GRAPH_COMPLETION_COT</span>
+          </button>
+          <div class="sec-body" id="body-citations">
+            <div class="citation-grid" id="citationList">
+
+              <div class="citation-card">
+                <div class="cit-node-row">
+                  <span class="cit-node">stmt_017</span>
+                  <span class="cit-edge-type cit-bidirectional">⇔ CONFLICT</span>
+                  <span class="cit-node">stmt_004</span>
+                  <span class="cit-weight">w: 0.94</span>
+                </div>
+                <span class="cit-badge cit-contradiction">CONTRADICTION</span>
+                <p class="cit-desc">"never left the house" [S1·09:16] conflicts with "stepped out briefly" [S2·09:19]. Temporal gap: 3 days. Recall confidence: 94.2%.</p>
+              </div>
+
+              <div class="citation-card">
+                <div class="cit-node-row">
+                  <span class="cit-node">stmt_013</span>
+                  <span class="cit-edge-type cit-bidirectional">⇔ CONFLICT</span>
+                  <span class="cit-node">stmt_019</span>
+                  <span class="cit-weight">w: 0.88</span>
+                </div>
+                <span class="cit-badge cit-contradiction">CONTRADICTION</span>
+                <p class="cit-desc">"no business travel" [S3] conflicts with confirmed flight record SFO→ORD, Mar 12. Corporate booking system record.</p>
+              </div>
+
+              <div class="citation-card">
+                <div class="cit-node-row">
+                  <span class="cit-node">stmt_008</span>
+                  <span class="cit-edge-type cit-inbound">← CONFIRMS</span>
+                  <span class="cit-node">stmt_002</span>
+                  <span class="cit-weight">w: 0.91</span>
+                </div>
+                <span class="cit-badge cit-verified">VERIFIED</span>
+                <p class="cit-desc">Employment at Nexar Corp confirmed by badge access record and HR system. Inbound edge from corp database cross-reference.</p>
+              </div>
+
+              <div class="citation-card">
+                <div class="cit-node-row">
+                  <span class="cit-node">stmt_021</span>
+                  <span class="cit-edge-type cit-outbound">→ NULL</span>
+                  <span class="cit-node">∅</span>
+                  <span class="cit-weight">w: —</span>
+                </div>
+                <span class="cit-badge cit-pending">PENDING</span>
+                <p class="cit-desc">Dinner companion claim — no corroborating node found in graph. Table reserved for 2 (Café Noireau record). Awaiting cognee.recall().</p>
+              </div>
+
+              <div class="citation-card">
+                <div class="cit-node-row">
+                  <span class="cit-node">stmt_003</span>
+                  <span class="cit-edge-type cit-pruned">⊘ PRUNED</span>
+                  <span class="cit-node">∅</span>
+                  <span class="cit-weight">—</span>
+                </div>
+                <span class="cit-badge cit-cleared">CLEARED</span>
+                <p class="cit-desc">D. Chen node and all associated edges removed from active graph via cognee.forget(). Alibi confirmed, no longer relevant to investigation.</p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Investigative Summary ── -->
+        <div class="report-summary" id="reportSummary">
+          <div class="summary-header">
+            <span class="summary-label">INVESTIGATIVE SUMMARY</span>
+            <span class="summary-confidence">
+              Overall case confidence: <strong class="conf-high">HIGH</strong>
+            </span>
+          </div>
+          <p class="summary-text">Subject <strong>Harlow</strong> has exhibited <strong>3 documented contradictions</strong> across 4 sessions covering location claims, travel history, and companion presence. All contradictions are directly falsifiable via digital records (restaurant receipts, flight logs, badge systems). Credibility index has fallen to <strong class="cr-red">42%</strong> — threshold for formal escalation is 40%.</p>
+          <p class="summary-text" style="margin-top:8px">Associate <strong>Voss</strong> remains under passive monitoring. The Nexar Corp meeting on Mar 10 establishes a connection. Credibility stands at <strong class="cr-amber">67%</strong> pending corroboration of Harlow's companion claim at Café Noireau.</p>
+          <div class="summary-rec">
+            <span class="rec-label">RECOMMENDATION</span>
+            <span class="rec-text">Escalate Harlow to formal proceedings. Issue subpoena for Café Noireau CCTV. Continue monitoring Voss. Graph namespace: active.</span>
+          </div>
+          <div class="summary-footer-row">
+            <span class="sf-mono">Generated by ChiefOfPolice node · cognee.recall() + LangGraph · GRAPH_COMPLETION_COT</span>
+            <span class="sf-mono">Case #2024-ALPHA-7 · 2026-07-01 09:26 UTC</span>
+          </div>
+        </div>
+
+      </div><!-- /report-doc -->
+    </section><!-- /panel-chief -->
+
+  </main><!-- /dashboard-grid -->
+
+  <!-- ═══════════════════════════════════════════════════════
+       GRAPH VIEW MODAL
+  ═══════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="graphModal" onclick="closeGraphModal(event)">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">◈ Cognee Memory Graph · Knowledge Map</span>
+        <button class="modal-close" onclick="showGraphModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <canvas id="graphCanvas" width="760" height="420"></canvas>
+        <div class="graph-legend">
+          <span class="gl-item"><span class="gl-dot gl-red"></span>Contradiction</span>
+          <span class="gl-item"><span class="gl-dot gl-green"></span>Verified</span>
+          <span class="gl-item"><span class="gl-dot gl-amber"></span>Pending</span>
+          <span class="gl-item"><span class="gl-dot gl-grey"></span>Pruned</span>
+          <span class="gl-item"><span class="gl-dot gl-blue"></span>Entity</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
