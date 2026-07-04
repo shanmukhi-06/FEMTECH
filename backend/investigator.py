@@ -131,18 +131,22 @@ async def cognee_setup() -> None:
         raise RuntimeError("GROQ_API_KEY not configured in .env")
 
     llm_model = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
+    # LiteLLM (used inside Cognee) needs provider prefix: "groq/model-name"
+    cognee_model = f"groq/{llm_model}" if not llm_model.startswith("groq/") else llm_model
 
-    # Tell Cognee which LLM to use for its internal graph extraction
-    os.environ["LLM_PROVIDER"] = "groq"
-    os.environ["LLM_MODEL"]    = llm_model
+    # Groq is OpenAI-compatible — tell Cognee to use "openai" provider
+    # but point it at Groq's base URL via LLM_ENDPOINT
+    os.environ["LLM_PROVIDER"] = "openai"
+    os.environ["LLM_MODEL"]    = cognee_model
     os.environ["LLM_API_KEY"]  = api_key
+    os.environ["LLM_ENDPOINT"] = "https://api.groq.com/openai/v1"
 
     # Cognee's embeddings fall back to its built-in local model when
     # EMBEDDING_PROVIDER is not set to an external service — that's fine
     # for the hackathon demo.
     os.environ.setdefault("EMBEDDING_PROVIDER", "local")
 
-    logger.info("Cognee configured → provider=groq model=%s", llm_model)
+    logger.info("Cognee configured → provider=openai(groq) model=%s embed=local", cognee_model)
 
 
 # ---------------------------------------------------------------------------
@@ -266,12 +270,46 @@ def _next_stmt_id(case_id: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Reliable in-memory statement log
+# ---------------------------------------------------------------------------
+# Cognee's graph build (cognify) can fail if LiteLLM can't route the model.
+# This dict is the GUARANTEED source of truth for contradiction detection.
+# Cognee still runs in background for the hackathon demo, but the Analyst
+# always gets prior statements from here — it never returns empty.
+
+_statement_log: Dict[str, List[Dict]] = {}   # case_id → [{id, session, text}]
+
+
+def _log_statement(case_id: str, stmt_id: str, session_id: str, text: str) -> None:
+    _statement_log.setdefault(case_id, []).append(
+        {"id": stmt_id, "session": session_id, "text": text}
+    )
+
+
+def _get_prior_statements(case_id: str, current_stmt_id: str) -> str:
+    """All prior statements for this case, formatted for the Analyst prompt."""
+    prior = [
+        s for s in _statement_log.get(case_id, [])
+        if s["id"] != current_stmt_id
+    ]
+    if not prior:
+        return "No prior statements recorded yet — this is the first statement."
+    return "\n".join(
+        f"[{s['id']} · {s['session']}] \"{s['text']}\""
+        for s in prior
+    )
+
+
+# ---------------------------------------------------------------------------
 # LLM factory — Groq via langchain-groq
 # ---------------------------------------------------------------------------
 
 def _make_llm(model: str | None = None) -> ChatGroq:
+    # Strip "groq/" prefix if present — langchain-groq uses bare model names
+    raw_model = model or os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
+    clean_model = raw_model.removeprefix("groq/")
     return ChatGroq(
-        model=model or os.getenv("LLM_MODEL", "llama-3.3-70b-versatile"),
+        model=clean_model,
         api_key=os.environ["GROQ_API_KEY"],
         temperature=0.2,
         max_retries=2,
@@ -287,7 +325,8 @@ class InvestigatorBureau:
 
     def __init__(self, model: str | None = None) -> None:
         self.llm = _make_llm(model)
-        logger.info("InvestigatorBureau ready → %s", model or os.getenv("LLM_MODEL", "llama-3.3-70b-versatile"))
+        clean = (model or os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")).removeprefix("groq/")
+        logger.info("InvestigatorBureau ready → %s", clean)
 
     # ── NODE 01: Detective ──────────────────────────────────────────────
     async def detective_node(self, state: InvestigatorState) -> dict:
@@ -302,11 +341,14 @@ class InvestigatorBureau:
         subject_name = state.get("subject_name", "Subject")
         stmt_id      = _next_stmt_id(case_id)
 
-        # ── cognee.remember() ──────────────────────────────────────────
+        # ── cognee.remember() + in-memory log ─────────────────────────
         fact = (
             f"[{session_id}] [{stmt_id}] [{datetime.now(timezone.utc).isoformat()}] "
             f"Subject {subject_name} stated: {user_input}"
         )
+        # Log to reliable in-memory store FIRST (always works)
+        _log_statement(case_id, stmt_id, session_id, user_input)
+        # Also send to Cognee in background (best-effort, may fail)
         await memory_write(fact, case_id)
 
         # ── LLM: detective reply (25 s timeout) ────────────────────────
@@ -364,10 +406,37 @@ class InvestigatorBureau:
         session_id   = state["session_id"]
         stmt_id      = state.get("last_statement_id", "stmt_???")
 
-        # ── cognee.recall() — retrieve all prior logged statements ─────
-        historical_context = await memory_read(
-            "All prior statements made by the subject across all sessions", case_id
-        )
+        # ── PRIMARY: in-memory statement log (always reliable) ─────────
+        # This is the guaranteed source — works even when Cognee's graph
+        # build fails due to LiteLLM routing issues.
+        primary_context = _get_prior_statements(case_id, stmt_id)
+        logger.info("Analyst in-memory context: %d prior statements",
+                    len(_statement_log.get(case_id, [])) - 1)
+
+        # ── SECONDARY: cognee.recall() (best-effort enrichment) ────────
+        # Run in background — if it returns something, merge it in.
+        # If it times out or fails, we already have primary_context.
+        cognee_context = ""
+        try:
+            cognee_context = await asyncio.wait_for(
+                memory_read("All prior statements made by the subject", case_id),
+                timeout=8.0,
+            )
+            if "No prior context" in cognee_context or "timed out" in cognee_context:
+                cognee_context = ""
+        except Exception:
+            cognee_context = ""
+
+        # Build the final context for the LLM
+        if cognee_context:
+            historical_context = (
+                f"=== STATEMENT LOG (in-memory, reliable) ===\n{primary_context}\n\n"
+                f"=== COGNEE GRAPH CONTEXT (additional enrichment) ===\n{cognee_context}"
+            )
+        else:
+            historical_context = primary_context
+
+        logger.info("Analyst total context length: %d chars", len(historical_context))
 
         # ── LLM: structured contradiction analysis (30 s timeout) ──────
         structured_llm = self.llm.with_structured_output(ContradictionAnalysis)
@@ -377,32 +446,36 @@ class InvestigatorBureau:
                     {
                         "role": "system",
                         "content": (
-                            "You are a forensic linguistic analyst running a cross-session "
-                            "contradiction detection system for a criminal interrogation. "
-                            "You will be given ALL prior statements the subject has made "
-                            "(from the knowledge graph) and ONE new statement. "
-                            "Your job: compare the new statement against every prior statement "
-                            "and flag any direct factual conflict. Examples of contradictions: "
-                            "claiming to be home all evening vs later admitting going out; "
-                            "denying travel vs admitting a trip; denying a relationship vs "
-                            "admitting close collaboration. "
-                            "IMPORTANT RULES: "
-                            "1. prior_statement_ref and graph_edge MUST be strings — use \"\" if none. "
-                            "2. Never return null for any field. "
-                            "3. If no prior statements exist, set has_contradiction=false and use \"\" for ref/edge. "
-                            "4. Be specific — quote the conflicting phrases."
+                            "You are a sharp forensic analyst for a criminal interrogation. "
+                            "Your ONLY job is to find factual contradictions between a new "
+                            "statement and everything the subject has said before. "
+                            "A contradiction means: the subject said X before and now says NOT-X. "
+                            "EXAMPLES OF CONTRADICTIONS YOU MUST CATCH:\n"
+                            "- 'I never left home' → later says 'I stepped out'\n"
+                            "- 'I don't travel for work' → later says 'I flew to Chicago'\n"
+                            "- 'I don't know Renata Voss' → later says 'she is my project director'\n"
+                            "- 'I have no criminal record' → later admits 'I was arrested in 2018'\n"
+                            "RULES:\n"
+                            "1. If ANY contradiction exists, set has_contradiction=true\n"
+                            "2. confidence_delta should be 0.15-0.25 for clear contradictions\n"
+                            "3. prior_statement_ref: use the stmt ID if visible, else 'prior_statement'\n"
+                            "4. graph_edge: format as 'new_stmt ⇔ prior_stmt'\n"
+                            "5. NEVER return null — use empty string '' if no value\n"
+                            "6. recall_confidence: how certain you are (0.0-1.0)"
                         ),
                     },
                     {
                         "role": "user",
                         "content": (
-                            f"=== ALL PRIOR STATEMENTS FROM KNOWLEDGE GRAPH ===\n"
+                            f"=== ALL PRIOR STATEMENTS (reliable in-memory log) ===\n"
                             f"{historical_context}\n\n"
                             f"=== NEW STATEMENT [{session_id} · {stmt_id}] ===\n"
                             f'"{latest_input}"\n\n'
-                            "Does this new statement contradict any prior statement above? "
-                            "If yes, identify which prior statement, explain the conflict, "
-                            "and provide the graph edge notation."
+                            "TASK: Does the NEW STATEMENT directly contradict anything in the "
+                            "prior statements above?\n"
+                            "Look for: location claims, travel claims, relationship claims, "
+                            "timeline claims, work habits, access claims, criminal history.\n"
+                            "Be precise — quote the conflicting phrases. Flag it if the conflict is clear."
                         ),
                     },
                 ]),
@@ -472,11 +545,19 @@ class InvestigatorBureau:
         """
         case_id = state["case_id"]
 
-        # ── cognee.recall() ────────────────────────────────────────────
-        full_context = await memory_read(
-            "All statements, contradictions, timeline events, and evidence in this case",
-            case_id,
-        )
+        # ── In-memory log (primary) + cognee.recall() (enrichment) ────
+        all_stmts = _get_prior_statements(case_id, "none")
+        try:
+            cognee_ctx = await asyncio.wait_for(
+                memory_read("All statements, contradictions, and evidence in this case", case_id),
+                timeout=8.0,
+            )
+            if not cognee_ctx or "No prior context" in cognee_ctx or "timed out" in cognee_ctx:
+                full_context = all_stmts
+            else:
+                full_context = f"STATEMENT LOG:\n{all_stmts}\n\nCOGNEE GRAPH:\n{cognee_ctx}"
+        except Exception:
+            full_context = all_stmts
 
         contradictions_text = "\n".join(
             f"  • {c}" for c in state.get("detected_contradictions", [])
@@ -654,8 +735,8 @@ async def run_session(
         "subject_name":           subject_name,
         "detected_contradictions": [],
         "graph_citations":        [],
-        "active_suspects":        active_suspects or ["Marcus Harlow", "Renata Voss"],
-        "credibility_scores":     credibility_scores or {"harlow": 100.0, "voss": 100.0},
+        "active_suspects":        active_suspects or ["Subject"],
+        "credibility_scores":     credibility_scores or {"subject": 100.0},
         "case_report":            "",
         "last_statement_id":      "",
         "pipeline_metadata":      {},
