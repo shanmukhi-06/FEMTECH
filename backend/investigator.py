@@ -119,34 +119,41 @@ class CaseReport(BaseModel):
 
 async def cognee_setup() -> None:
     """
-    Configure Cognee to use Groq for LLM calls.
-    Cognee reads LLM config from environment variables at runtime —
-    we set them explicitly so they override any defaults.
-    Note: Groq doesn't provide embeddings, so we use a local fallback
-    (sentence-transformers via Cognee's default) for the graph store.
+    Configure Cognee — connects to Cognee Cloud if credentials are present,
+    otherwise runs locally with Groq as the LLM backend.
     """
-    api_key = os.environ.get("GROQ_API_KEY", "")
-    if not api_key or api_key.startswith("your_"):
-        logger.error("GROQ_API_KEY not set. Get a free key at https://console.groq.com/keys")
+    groq_key = os.environ.get("GROQ_API_KEY", "")
+    if not groq_key or groq_key.startswith("your_"):
         raise RuntimeError("GROQ_API_KEY not configured in .env")
 
-    llm_model = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
-    # LiteLLM (used inside Cognee) needs provider prefix: "groq/model-name"
+    llm_model    = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
     cognee_model = f"groq/{llm_model}" if not llm_model.startswith("groq/") else llm_model
 
-    # Groq is OpenAI-compatible — tell Cognee to use "openai" provider
-    # but point it at Groq's base URL via LLM_ENDPOINT
+    # ── Cognee Cloud connection (optional but recommended) ─────────────
+    cognee_url = os.getenv("COGNEE_SERVICE_URL", "")
+    cognee_key = os.getenv("COGNEE_API_KEY", "")
+
+    if cognee_url and cognee_key and not cognee_url.startswith("your_"):
+        logger.info("Connecting to Cognee Cloud → %s", cognee_url)
+        try:
+            await cognee.serve(url=cognee_url, api_key=cognee_key)
+            logger.info("Cognee Cloud connected successfully.")
+        except Exception as exc:
+            logger.warning("Cognee Cloud connection failed (%s) — falling back to local.", exc)
+            _setup_local_cognee(groq_key, cognee_model)
+    else:
+        logger.info("No Cognee Cloud credentials — using local storage.")
+        _setup_local_cognee(groq_key, cognee_model)
+
+
+def _setup_local_cognee(groq_key: str, cognee_model: str) -> None:
+    """Configure Cognee to run locally with Groq via OpenAI-compatible endpoint."""
     os.environ["LLM_PROVIDER"] = "openai"
     os.environ["LLM_MODEL"]    = cognee_model
-    os.environ["LLM_API_KEY"]  = api_key
+    os.environ["LLM_API_KEY"]  = groq_key
     os.environ["LLM_ENDPOINT"] = "https://api.groq.com/openai/v1"
-
-    # Cognee's embeddings fall back to its built-in local model when
-    # EMBEDDING_PROVIDER is not set to an external service — that's fine
-    # for the hackathon demo.
     os.environ.setdefault("EMBEDDING_PROVIDER", "local")
-
-    logger.info("Cognee configured → provider=openai(groq) model=%s embed=local", cognee_model)
+    logger.info("Cognee configured → local mode | model=%s", cognee_model)
 
 
 # ---------------------------------------------------------------------------
