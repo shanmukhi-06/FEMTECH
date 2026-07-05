@@ -579,11 +579,13 @@ function _localReply(t) {
 
 const _CHECKS = [
   { kw: ['alone', 'by myself', 'nobody', 'no one', 'just me'], note: 'Companion claim inconsistency detected. Table records indicate presence of a second party. Flagging for cognee.recall() verification.', edge: 'stmt_current ⇔ prior_companion', delta: 9 },
-  { kw: ['never', 'always', 'every time', 'all the time', 'not once'], note: 'Absolute qualifier detected. Running cognee.recall() sweep for counter-evidence nodes.', edge: 'stmt_current → history_scan', delta: 6 },
+  { kw: ['never travel', 'never left', 'never copied', 'never accessed', 'never communicated', 'no relationship', 'no contact'], note: 'Absolute denial detected. Running cognee.recall() sweep for counter-evidence nodes.', edge: 'stmt_current → history_scan', delta: 6 },
   { kw: ['work', 'office', 'meeting', 'business', 'travel', 'trip', 'client', 'flight', 'flew'], note: 'Work/travel claim. Cross-referencing prior statements about work habits via cognee.recall(). Potential conflict detected.', edge: 'stmt_current ⇔ prior_work_claim', delta: 12 },
   { kw: ['home', 'house', 'apartment', 'stayed', 'nowhere', 'all evening', 'all night'], note: 'Location claim cross-referenced against prior statements. Potential alibi conflict. Graph edge triggered.', edge: 'stmt_current ⇔ prior_location', delta: 15 },
 ];
 function _localCheck(t) {
+  // Need at least 2 messages to have a prior statement to contradict
+  if (APP.messageLog.length < 2) return null;
   const l = t.toLowerCase();
   for (const c of _CHECKS) { if (c.kw.some(k => l.includes(k))) return c; }
   return null;
