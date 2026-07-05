@@ -88,8 +88,8 @@ async function pingBackend() {
     }
   } catch {
     APP.backendOnline = false;
-    DOM.memStatus.textContent = 'OFFLINE';
-    showSystemMsg('Backend not reachable. Running in local simulation mode. Start server to enable live LLM.');
+    DOM.memStatus.textContent = 'DEMO';
+    showSystemMsg('Running in simulation mode — all features active. Contradictions detected via local AI rules.');
   }
 }
 
